@@ -29,10 +29,12 @@ int dissect(char* str) {
   int first = 0;
   int last = 0;
 
+  // find any and all occurrences of any number words (keeping first and last)
   for (int i = 0; i < ARRLEN(WORDS); i++) {
     char* substrptr = strstr(str, WORDS[i]);
     if (!substrptr) continue;
 
+    // search ahead to see if word is seen more times (e.g. two1eqnine4nine)
     while (substrptr) {
       if (firstptr == NULL || substrptr < firstptr) {
         firstptr = substrptr;
@@ -48,6 +50,7 @@ int dissect(char* str) {
     }
   }
 
+  // search each character to find digits now, keeping first and last
   for (int i = 0; i < strlen(str); i++) {
     if (isdigit(str[i])) {
       if (firstptr == NULL || &str[i] < firstptr) {
