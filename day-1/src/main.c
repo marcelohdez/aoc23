@@ -3,36 +3,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ARRLEN(arr) (sizeof(arr)/sizeof(*arr))
+#define ARRLEN(arr) (sizeof(arr) / sizeof(*arr))
 
-const char* WORDS[] = {
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine"
-};
+const char *WORDS[] = {"zero", "one", "two",   "three", "four",
+                       "five", "six", "seven", "eight", "nine"};
 
 int ctoi(char c) {
-  return c - '0'; // highly sophistaced ascii to integer conversion /s
+  return c - '0'; // highly sophisticated ascii to integer conversion /s
 }
 
 // str is assumed null terminated (for strlen)
-int dissect(char* str) {
-  char* firstptr = NULL;
-  char* lastptr = NULL;
+int dissect(char *str) {
+  char *firstptr = NULL;
+  char *lastptr = NULL;
   int first = 0;
   int last = 0;
 
   // find any and all occurrences of any number words (keeping first and last)
   for (int i = 0; i < ARRLEN(WORDS); i++) {
-    char* substrptr = strstr(str, WORDS[i]);
-    if (!substrptr) continue;
+    char *substrptr = strstr(str, WORDS[i]);
+    if (!substrptr)
+      continue;
 
     // search ahead to see if word is seen more times (e.g. two1eqnine4nine)
     while (substrptr) {
@@ -68,15 +59,16 @@ int dissect(char* str) {
   return (first * 10) + last;
 }
 
-int parse(FILE* fptr) {
+int parse(FILE *fptr) {
   int total = 0;
 
-  size_t len = 8; // default
-  char* str = malloc(len);
+  size_t len = 16; // default line buffer size
+  char *str = malloc(len);
 
   while (1) {
     getline(&str, &len, fptr);
-    if (feof(fptr)) break;
+    if (feof(fptr))
+      break;
 
     total += dissect(str);
   }
@@ -86,7 +78,7 @@ int parse(FILE* fptr) {
 }
 
 int main() {
-  FILE* fptr;
+  FILE *fptr;
 
   fptr = fopen("day-1/input.txt", "r");
   if (!fptr) {
