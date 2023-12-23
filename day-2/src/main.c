@@ -2,36 +2,37 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char *SET_DILIM = ";"; // delimiter for sets of cubes shown
-const char *CUBE_DILIM = ", ";
+const char *SET_DILIM = ";";     // delimiter for sets of cubes shown
+const char *CUBE_DILIM = ", \n"; // split on ', ' and newlines
 
-const int RED_LIMIT = 12;
-const int GREEN_LIMIT = 13;
-const int BLUE_LIMIT = 14;
+const struct GameMaxes_s {
+  int max_red;
+  int max_green;
+  int max_blue;
+} game_maxes_default = {0, 0, 0};
+typedef struct GameMaxes_s GameMaxes; // lets us omit "struct" keywords below
 
-// ignores newline on s1 when comparing to s2
-int strcmpnl1(char *s1, const char *s2) {
-  int len = strlen(s1);
-  char *trimmed1 = s1;
-
-  if (s1[len - 1] == '\n') {
-    s1[len - 1] = '\0'; // replace newline with null so strcpy stops there
-
-    trimmed1 = malloc(len - 1);
-    strcpy(trimmed1, s1);
-
-    s1[len - 1] = '\n'; // put newline back
+// Will return 0 on failure
+int parse_color(int value, char *color, GameMaxes *maxes) {
+  if (!strcmp(color, "red")) {
+    if (value > maxes->max_red)
+      maxes->max_red = value;
+  } else if (!strcmp(color, "green")) {
+    if (value > maxes->max_green)
+      maxes->max_green = value;
+  } else if (!strcmp(color, "blue")) {
+    if (value > maxes->max_blue)
+      maxes->max_blue = value;
+  } else {
+    return 0;
   }
 
-  int res = strcmp(trimmed1, s2);
-
-  if (trimmed1 != s1)
-    free(trimmed1);
-
-  return res;
+  return 1;
 }
 
-int is_game_possible(char *start) {
+GameMaxes parse_game(char *start) {
+  GameMaxes maxes = game_maxes_default;
+
   char *outer_ptr;
   char *set_split = strtok_r(start, SET_DILIM, &outer_ptr);
 
@@ -39,7 +40,7 @@ int is_game_possible(char *start) {
     char *inner_ptr;
     char *cube_split = strtok_r(set_split, CUBE_DILIM, &inner_ptr);
 
-    int tmp = -1;
+    int tmp = -1; // store last number seen
     while (cube_split) {
       // get value or color of cube
       int maybe_value = atoi(cube_split);
@@ -52,16 +53,7 @@ int is_game_possible(char *start) {
           break;
         }
 
-        if (!strcmpnl1(cube_split, "red")) {
-          if (tmp > RED_LIMIT)
-            return 0;
-        } else if (!strcmpnl1(cube_split, "green")) {
-          if (tmp > GREEN_LIMIT)
-            return 0;
-        } else if (!strcmpnl1(cube_split, "blue")) {
-          if (tmp > BLUE_LIMIT)
-            return 0;
-        } else {
+        if (!parse_color(tmp, cube_split, &maxes)) {
           printf("ERROR: expected color but got '%s'\n", cube_split);
           break;
         }
@@ -73,15 +65,15 @@ int is_game_possible(char *start) {
     set_split = strtok_r(NULL, SET_DILIM, &outer_ptr);
   }
 
-  return 1;
+  return maxes;
 }
 
-int parse(FILE *fptr) {
-  size_t len = 16;
+int parse_file(FILE *fptr) {
+  size_t len = 24;
   char *str = malloc(len);
 
   int game_num = 1;
-  int possible_id_sum = 0;
+  int game_power_sum = 0;
   while (1) {
     getline(&str, &len, fptr);
     if (feof(fptr))
@@ -96,18 +88,19 @@ int parse(FILE *fptr) {
       }
     }
 
-    if (!start) // empty line at end of file or I done goofed
+    if (!start) { // empty line or incorrect formatting
+      printf("failed parsing game %d! empty line or bad format?\n", game_num);
       break;
-
-    if (is_game_possible(start)) {
-      possible_id_sum += game_num;
     }
+
+    GameMaxes info = parse_game(start);
+    game_power_sum += info.max_red * info.max_green * info.max_blue;
 
     game_num++;
   }
 
   free(str);
-  return possible_id_sum;
+  return game_power_sum;
 }
 
 int main() {
@@ -118,7 +111,7 @@ int main() {
     return 1;
   }
 
-  printf("%d\n", parse(fptr));
+  printf("%d\n", parse_file(fptr));
 
   fclose(fptr);
   return 0;
